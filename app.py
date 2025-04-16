@@ -9,7 +9,7 @@ from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
 
 # Hardcoded API key (replace with your actual API key)
-OPENAI_API_KEY = "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"
+OPENAI_API_KEY = "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"
 
 st.set_page_config(page_title="Financial Statement Analyzer", layout="wide")
 st.title("Financial Statement Analyzer")
