@@ -8,11 +8,11 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
 
+# Hardcoded API key (replace with your actual API key)
+OPENAI_API_KEY = "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"
+
 st.set_page_config(page_title="Financial Statement Analyzer", layout="wide")
 st.title("Financial Statement Analyzer")
-
-# Add API key input (with secure password field)
-api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password")
 
 # File uploader
 uploaded_file = st.sidebar.file_uploader("Upload Financial Statement PDF", type="pdf")
@@ -61,7 +61,7 @@ def calculate_financial_ratios(debt, equity, receivables, inventories, payables,
         "Current Ratio": current_ratio
     }
 
-if uploaded_file and api_key:
+if uploaded_file:
     try:
         with st.spinner("Processing financial statement..."):
             # Save uploaded file temporarily
@@ -70,8 +70,8 @@ if uploaded_file and api_key:
                 pdf_path = tmp.name
             
             # Initialize LangChain components
-            embeddings = OpenAIEmbeddings(openai_api_key=api_key)
-            llm = OpenAI(temperature=0, openai_api_key=api_key)
+            embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+            llm = OpenAI(temperature=0, openai_api_key=OPENAI_API_KEY)
             
             # Load document
             pdf_loader = PyMuPDFLoader(pdf_path)
@@ -84,25 +84,18 @@ if uploaded_file and api_key:
             # Create agent
             agent = ConversationalRetrievalChain.from_llm(llm, retriever=retriever)
             
-            # Document preview
-            # st.subheader("Document Preview")
-            # preview = documents[0].page_content[:500] + "..."
-            # st.text(preview)
-            
             # Extract financial data
             st.subheader("Extracting Financial Data")
             
             col1, col2 = st.columns(2)
             
             with col1:
-                # st.write("##### Balance Sheet Items")
                 total_assets = safe_get("What is the total value of assets in USD?", agent)
                 total_debt = safe_get("What is the total debt mentioned in the financial statement?", agent)
                 total_equity = safe_get("What is the total equity mentioned in the financial statement?", agent)
                 current_assets = safe_get("What is the total value of current assets in USD?", agent)
                 
             with col2:
-                # st.write("##### Working Capital Items")
                 account_receivables = safe_get("What are the account receivables in the financial statement?", agent)
                 inventories = safe_get("What is the inventory value mentioned in the financial statement?", agent)
                 account_payables = safe_get("What are the account payables mentioned in the financial statement?", agent)
@@ -149,15 +142,14 @@ if uploaded_file and api_key:
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 else:
-    st.info("Please upload a financial statement PDF and enter your OpenAI API key to begin analysis.")
+    st.info("Please upload a financial statement PDF to begin analysis.")
     
     # Example section
     with st.expander("How to use this app"):
         st.write("""
-        1. Enter your OpenAI API key in the sidebar
-        2. Upload a financial statement PDF
-        3. The app will extract key financial data and calculate important ratios
-        4. You can also ask custom questions about the financial statement
+        1. Upload a financial statement PDF
+        2. The app will extract key financial data and calculate important ratios
+        3. You can also ask custom questions about the financial statement
         
         This app uses LangChain and OpenAI to analyze financial statements and extract key metrics.
         """)
