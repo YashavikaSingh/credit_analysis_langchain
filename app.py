@@ -7,9 +7,10 @@ from langchain.llms import OpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
+import streamlit as st
 
+openai_key = st.secrets["openai"]["api_key"]
 # Hardcoded API key (replace with your actual API key)
-OPENAI_API_KEY = "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"
 
 st.set_page_config(page_title="Financial Statement Analyzer", layout="wide")
 st.title("Financial Statement Analyzer")
@@ -70,8 +71,8 @@ if uploaded_file:
                 pdf_path = tmp.name
             
             # Initialize LangChain components
-            embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
-            llm = OpenAI(temperature=0, openai_api_key=OPENAI_API_KEY)
+            embeddings = OpenAIEmbeddings(openai_api_key=openai_key)
+            llm = OpenAI(temperature=0, openai_api_key=openai_key)
             
             # Load document
             pdf_loader = PyMuPDFLoader(pdf_path)
