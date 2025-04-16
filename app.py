@@ -9,8 +9,7 @@ from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
 
 # Hardcoded API key (replace with your actual API key)
-OPENAI_API_KEY = "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"
-
+OPENAI_API_KEY = st.secrets["openai"]["api_key"]
 st.set_page_config(page_title="Financial Statement Analyzer", layout="wide")
 st.title("Financial Statement Analyzer")
 
