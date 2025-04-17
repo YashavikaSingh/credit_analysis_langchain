@@ -130,6 +130,59 @@ if uploaded_file:
     except Exception as e:
         st.error(f"🚨 An error occurred: {str(e)}")
 
+# Ask Question via Audio or Text
+st.subheader("🎤 Ask a Question by Voice or Text")
+audio_data = mic_recorder()
+text_query = st.text_input("Or enter your question manually:")
+
+query = None
+
+if audio_data is not None:
+    # Debugging: Check the type and structure of audio_data
+    st.write(f"Audio data type: {type(audio_data)}")
+    
+    # If it's a dictionary, inspect its contents
+    if isinstance(audio_data, dict):
+        st.write(f"Audio data contents: {audio_data}")  # See the dictionary structure
+        
+        # Extract the audio file path (adjust based on the actual structure)
+        audio_file_path = audio_data.get("file_path")  # Assuming the dictionary contains a file_path key
+        
+        if audio_file_path:
+            with sr.AudioFile(audio_file_path) as source:
+                r = sr.Recognizer()
+                audio = r.record(source)
+                try:
+                    query = r.recognize_google(audio)
+                    st.success(f"🗣️ Transcribed Question: {query}")
+                except sr.UnknownValueError:
+                    st.error("Speech Recognition could not understand audio.")
+                except sr.RequestError as e:
+                    st.error(f"Could not request results from Google Speech Recognition service; {e}")
+        else:
+            st.error("No audio file path found in the received data.")
+    else:
+        st.error(f"Received audio data is not in the expected dictionary format. It's of type {type(audio_data)}")
+
+elif text_query:
+    query = text_query
+
+if query:
+    response = agent.run({"question": query, "chat_history": []})
+    st.write(response)
+
+    # Text-to-Speech
+    tts = gTTS(text=response, lang='en')
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
+        tts.save(fp.name)
+        st.audio(fp.name, format="audio/mp3")
+
+        # Cleanup audio file
+        os.unlink(fp.name)
+
+# Cleanup PDF
+os.unlink(pdf_path)
+
 else:
     st.info("📤 Please upload a financial statement PDF to begin.")
     with st.expander("ℹ️ How to Use This App"):
