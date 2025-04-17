@@ -8,3 +8,4 @@ PyMuPDF
 openai
 faiss-cpu
 plotly
+tiktoken
