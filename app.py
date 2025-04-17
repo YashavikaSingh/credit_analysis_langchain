@@ -119,13 +119,6 @@ if uploaded_file:
 
             query = None
 
-            # Ask Question via Audio or Text
-            st.subheader("🎤 Ask a Question by Voice or Text")
-            audio_data = mic_recorder()
-            text_query = st.text_input("Or enter your question manually:")
-
-            query = None
-
             if audio_data is not None:
                 # Debugging: Check the type and structure of audio_data
                 st.write(f"Audio data type: {type(audio_data)}")
