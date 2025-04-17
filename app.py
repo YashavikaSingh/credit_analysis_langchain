@@ -70,17 +70,18 @@ def calculate_financial_ratios(debt, equity, receivables, inventories, payables,
     }
 
 def visualize_ratios(ratios):
-    # Filter out EPS for visualization
-    visual_ratios = {k: v for k, v in ratios.items() if "EPS" not in k}
+    # Select only the desired ratios
+    selected_keys = ["Quick Ratio", "Current Ratio", "Equity Ratio", "Debt to Equity Ratio"]
+    visual_ratios = {k: ratios[k] for k in selected_keys if k in ratios}
 
     ratio_labels = list(visual_ratios.keys())
     ratio_values = list(visual_ratios.values())
 
     fig, ax = plt.subplots()
-    ax.barh(ratio_labels, ratio_values, color='skyblue')
-    ax.set_xlabel('Value')
-    ax.set_title('Financial Ratios')
-    ax.grid(True, axis='x', linestyle='--', alpha=0.7)
+    ax.barh(ratio_labels, ratio_values, color=['#3498db', '#2ecc71', '#9b59b6', '#e74c3c'])
+    ax.set_xlabel('Ratio Value')
+    ax.set_title('Selected Financial Ratios')
+    ax.grid(True, axis='x', linestyle='--', alpha=0.6)
 
     st.pyplot(fig)
 # --- Main App ---
