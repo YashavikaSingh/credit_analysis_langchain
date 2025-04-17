@@ -120,20 +120,24 @@ if uploaded_file:
             query = None
 
             if audio_data is not None:
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
-                    f.write(audio_data)
-                    audio_path = f.name
+                st.write(f"Audio data type: {type(audio_data)}")
+                if isinstance(audio_data, bytes):  # If it's in byte format, proceed
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
+                        f.write(audio_data)  # This should work now
+                        audio_path = f.name
 
-                r = sr.Recognizer()
-                with sr.AudioFile(audio_path) as source:
-                    audio = r.record(source)
-                    try:
-                        query = r.recognize_google(audio)
-                        st.success(f"🗣️ Transcribed Question: {query}")
-                    except sr.UnknownValueError:
-                        st.error("Speech Recognition could not understand audio.")
-                    except sr.RequestError as e:
-                        st.error(f"Could not request results from Google Speech Recognition service; {e}")
+                    r = sr.Recognizer()
+                    with sr.AudioFile(audio_path) as source:
+                        audio = r.record(source)
+                        try:
+                            query = r.recognize_google(audio)
+                            st.success(f"🗣️ Transcribed Question: {query}")
+                        except sr.UnknownValueError:
+                            st.error("Speech Recognition could not understand audio.")
+                        except sr.RequestError as e:
+                            st.error(f"Could not request results from Google Speech Recognition service; {e}")
+                else:
+                    st.error("Received audio data is not in the expected byte format.")
 
             elif text_query:
                 query = text_query
