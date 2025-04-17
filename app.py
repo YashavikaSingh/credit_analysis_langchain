@@ -21,6 +21,38 @@ OPENAI_API_KEY = st.secrets["openai"]["api_key"]
 uploaded_file = st.sidebar.file_uploader("📁 Upload Financial Statement (PDF)", type="pdf")
 
 # --- Utility Functions ---
+def download_summary_csv(inputs: dict, ratios: dict, filename: str = "financial_summary.csv"):
+    """
+    Creates and offers a CSV file download with both raw inputs and calculated financial ratios.
+
+    Parameters:
+        inputs (dict): Dictionary of raw input financial values.
+        ratios (dict): Dictionary of calculated financial ratios.
+        filename (str): The desired filename for the CSV download.
+    """
+    buffer = io.StringIO()
+
+    # Convert and write input values
+    inputs_df = pd.DataFrame(inputs.items(), columns=["Metric", "Value"])
+    buffer.write("Raw Input Values\n")
+    inputs_df.to_csv(buffer, index=False)
+    buffer.write("\n")
+
+    # Convert and write calculated ratios
+    ratios_df = pd.DataFrame(ratios.items(), columns=["Ratio", "Value"])
+    buffer.write("Calculated Financial Ratios\n")
+    ratios_df.to_csv(buffer, index=False)
+
+    csv_data = buffer.getvalue()
+
+    st.subheader("⬇️ Download Full Financial Summary")
+    st.download_button(
+        label="Download Summary as CSV",
+        data=csv_data,
+        file_name=filename,
+        mime="text/csv"
+    )
+
 
 def safe_get(query, agent):
     response = agent.run({"question": query, "chat_history": []})
@@ -157,7 +189,9 @@ if uploaded_file:
         st.error(f"🚨 An error occurred: {str(e)}")
 
     # Generate a downloadable PDF summary
-    st.subheader("📄 Download Summary as PDF")
+    st.subheader("📄 Download Summary as csv")
+    download_summary_csv(inputs_dict, ratios)
+
 
 else:
     st.info("📤 Please upload a financial statement PDF to begin.")
