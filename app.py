@@ -12,7 +12,6 @@ from langchain.llms import OpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
-from fpdf import FPDF  # Added import for FPDF
 
 # Set page layout
 st.set_page_config(page_title="Financial Statement Analyzer", layout="wide")
