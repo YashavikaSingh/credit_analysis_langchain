@@ -119,7 +119,15 @@ if uploaded_file:
 
             query = None
 
+            # Ask Question via Audio or Text
+            st.subheader("🎤 Ask a Question by Voice or Text")
+            audio_data = mic_recorder()
+            text_query = st.text_input("Or enter your question manually:")
+
+            query = None
+
             if audio_data is not None:
+                # Debugging: Check the type and structure of audio_data
                 st.write(f"Audio data type: {type(audio_data)}")
                 if isinstance(audio_data, bytes):  # If it's in byte format, proceed
                     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
@@ -137,7 +145,7 @@ if uploaded_file:
                         except sr.RequestError as e:
                             st.error(f"Could not request results from Google Speech Recognition service; {e}")
                 else:
-                    st.error("Received audio data is not in the expected byte format.")
+                    st.error(f"Received audio data is not in the expected byte format. It's of type {type(audio_data)}")
 
             elif text_query:
                 query = text_query
