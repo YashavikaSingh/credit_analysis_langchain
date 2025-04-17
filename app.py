@@ -3,20 +3,24 @@ import re
 import os
 import base64
 from tempfile import NamedTemporaryFile
-from langchain.document_loaders import PyMuPDFLoader
+from langchain.document_loaders import UnstructuredPDFLoader
 from langchain.llms import OpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
 
+# Set page layout
 st.set_page_config(page_title="Financial Statement Analyzer", layout="wide")
 st.title("📊 Financial Statement Analyzer")
 
+# API key from secrets
 OPENAI_API_KEY = st.secrets["openai"]["api_key"]
 
-uploaded_file = st.sidebar.file_uploader("📁 Upload Financial Statement PDF", type="pdf")
+# Upload PDF file
+uploaded_file = st.sidebar.file_uploader("📁 Upload Financial Statement (PDF)", type="pdf")
 
-# Utility functions
+# --- Utility Functions ---
+
 def safe_get(query, agent):
     response = agent.run({"question": query, "chat_history": []})
     match = re.search(r"\$?[\d,]+\.\d+|\$?[\d,]+", response)
@@ -59,35 +63,37 @@ def get_ratio_status(ratio_name, value):
     else:
         return "ℹ️ Informational"
 
-# Main app
+# --- Main App ---
 if uploaded_file:
     try:
         with st.spinner("🔍 Processing financial statement..."):
-            with NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+            with NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                 tmp.write(uploaded_file.getvalue())
                 pdf_path = tmp.name
 
             with open(pdf_path, "rb") as file:
                 pdf_data = file.read()
 
-            # LangChain setup
-            embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
-            llm = OpenAI(temperature=0, openai_api_key=OPENAI_API_KEY)
-            pdf_loader = PyMuPDFLoader(pdf_path)
-            documents = pdf_loader.load()
-            vectorstore = FAISS.from_documents(documents, embeddings)
-            retriever = vectorstore.as_retriever()
-            agent = ConversationalRetrievalChain.from_llm(llm, retriever=retriever)
-
-            # Layout: Left column = PDF | Right column = Data
+            # Display PDF in left column
             left_col, right_col = st.columns([1, 2])
 
             with left_col:
                 st.markdown("### 📄 PDF Preview")
                 with st.expander("Click to View PDF"):
-                    base64_pdf = base64.b64encode(pdf_data).decode('utf-8')
+                    base64_pdf = base64.b64encode(pdf_data).decode("utf-8")
                     pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="800" type="application/pdf"></iframe>'
                     st.markdown(pdf_display, unsafe_allow_html=True)
+
+            # Use OCR-capable loader
+            loader = UnstructuredPDFLoader(pdf_path)
+            documents = loader.load()
+
+            # Setup LangChain components
+            embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+            llm = OpenAI(temperature=0, openai_api_key=OPENAI_API_KEY)
+            vectorstore = FAISS.from_documents(documents, embeddings)
+            retriever = vectorstore.as_retriever()
+            agent = ConversationalRetrievalChain.from_llm(llm, retriever=retriever)
 
             with right_col:
                 st.subheader("📥 Extracting Financial Data")
@@ -123,6 +129,10 @@ if uploaded_file:
                     response = agent.run({"question": custom_query, "chat_history": []})
                     st.write(response)
 
+            # Optional: show raw text to debug OCR
+            # st.subheader("🧪 Raw Text Sample")
+            # st.code(documents[0].page_content[:1000])
+
             # Cleanup
             os.unlink(pdf_path)
 
@@ -134,9 +144,9 @@ else:
     with st.expander("ℹ️ How to Use This App"):
         st.markdown("""
         1. Upload a financial statement PDF using the sidebar.
-        2. The app will extract financial data using AI.
-        3. Key financial ratios are calculated and displayed.
-        4. You can ask your own questions about the statement.
+        2. The app extracts financial data using AI (OCR-enabled).
+        3. Key financial ratios are calculated and color-coded.
+        4. You can ask custom questions about the statement.
 
         _Built with Streamlit, LangChain, and OpenAI._
         """)
