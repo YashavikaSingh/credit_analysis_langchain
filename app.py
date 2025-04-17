@@ -7,6 +7,7 @@ from langchain.llms import OpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
+import base64
 
 # Hardcoded API key (replace with your actual API key)
 OPENAI_API_KEY = st.secrets["openai"]["api_key"]
@@ -67,6 +68,16 @@ if uploaded_file:
             with NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
                 tmp.write(uploaded_file.getvalue())
                 pdf_path = tmp.name
+
+
+            with open(pdf_path, "rb") as file:
+                pdf_data = file.read()
+
+            # Embed the PDF content in the sidebar
+            st.sidebar.subheader("Uploaded PDF Content")
+            pdf_display = f'<iframe src="data:application/pdf;base64,{base64.b64encode(pdf_data).decode()}" width="300" height="800" style="overflow: scroll;"></iframe>'
+            st.sidebar.markdown(pdf_display, unsafe_allow_html=True)
+
             
             # Initialize LangChain components
             embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
