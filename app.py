@@ -12,6 +12,7 @@ from langchain.llms import OpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
+from fpdf import FPDF  # Added import for FPDF
 
 # Set page layout
 st.set_page_config(page_title="Financial Statement Analyzer", layout="wide")
@@ -84,6 +85,7 @@ def visualize_ratios(ratios):
 
     st.pyplot(fig)
     return fig  # Return the matplotlib figure
+
 # --- Main App ---
 if uploaded_file:
     try:
@@ -118,8 +120,6 @@ if uploaded_file:
                 inventories = safe_get("What is the inventory value mentioned in the financial statement?", agent)
                 account_payables = safe_get("What are the account payables mentioned in the financial statement?", agent)
                 current_liabilities = safe_get("What is the total value of current liabilities in USD?", agent)
-
-
 
             st.subheader("📊 Key Financial Ratios")
 
@@ -157,103 +157,53 @@ if uploaded_file:
             st.subheader("📉 Financial Ratios Visualization")
             fig = visualize_ratios(ratios)
 
-            
-
     except Exception as e:
         st.error(f"🚨 An error occurred: {str(e)}")
-# Generate a downloadable PDF summary
-st.subheader("📄 Download Summary as PDF")
 
-# Save the chart as an image temporarily
-graph_img_path = os.path.join(tempfile.gettempdir(), "ratios_chart.png")
-fig.savefig(graph_img_path, bbox_inches="tight")
+    # Generate a downloadable PDF summary
+    st.subheader("📄 Download Summary as PDF")
 
-pdf = FPDF()
-pdf.add_page()
-pdf.set_font("Arial", size=12)
+    # Save the chart as an image temporarily
+    graph_img_path = os.path.join(tempfile.gettempdir(), "ratios_chart.png")
+    fig.savefig(graph_img_path, bbox_inches="tight")
 
-pdf.cell(200, 10, txt="Financial Statement Summary", ln=True, align="C")
-pdf.ln(10)
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
 
-pdf.set_font("Arial", size=11)
-pdf.cell(200, 10, txt="Inputs Used for Ratio Calculation:", ln=True)
-for key, val in inputs_dict.items():
-    pdf.cell(200, 8, txt=f"{key}: {val}", ln=True)
+    pdf.cell(200, 10, txt="Financial Statement Summary", ln=True, align="C")
+    pdf.ln(10)
 
-pdf.ln(5)
-pdf.cell(200, 10, txt="Calculated Financial Ratios:", ln=True)
-for key, val in ratios.items():
-    display_val = f"{val:.2f}" if isinstance(val, float) else str(val)
-    pdf.cell(200, 8, txt=f"{key}: {display_val}", ln=True)
+    pdf.set_font("Arial", size=11)
+    pdf.cell(200, 10, txt="Inputs Used for Ratio Calculation:", ln=True)
+    for key, val in inputs_dict.items():
+        pdf.cell(200, 8, txt=f"{key}: {val}", ln=True)
 
-# Add the image
-pdf.ln(10)
-pdf.cell(200, 10, txt="Financial Ratios Chart:", ln=True)
-pdf.image(graph_img_path, x=10, w=180)
+    pdf.ln(5)
+    pdf.cell(200, 10, txt="Calculated Financial Ratios:", ln=True)
+    for key, val in ratios.items():
+        display_val = f"{val:.2f}" if isinstance(val, float) else str(val)
+        pdf.cell(200, 8, txt=f"{key}: {display_val}", ln=True)
 
-# Save PDF to temp file and create download button
-with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
-    pdf.output(tmp_pdf.name)
-    tmp_pdf.seek(0)
-    st.download_button(
-        label="📥 Download PDF Summary with Graph",
-        data=tmp_pdf.read(),
-        file_name="financial_summary.pdf",
-        mime="application/pdf"
-    )
+    # Add the image
+    pdf.ln(10)
+    pdf.cell(200, 10, txt="Financial Ratios Chart:", ln=True)
+    pdf.image(graph_img_path, x=10, w=180)
 
-# Ask Question via Audio or Text
-st.subheader("🎤 Ask a Question by Voice or Text")
-audio_data = mic_recorder()
-text_query = st.text_input("Or enter your question manually:")
+    # Save PDF to temp file and create download button
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
+        pdf.output(tmp_pdf.name)
+        tmp_pdf.seek(0)
+        st.download_button(
+            label="📥 Download PDF Summary with Graph",
+            data=tmp_pdf.read(),
+            file_name="financial_summary.pdf",
+            mime="application/pdf"
+        )
 
-query = None
-
-if audio_data is not None:
-    # Debugging: Check the type and structure of audio_data
-    st.write(f"Audio data type: {type(audio_data)}")
-    
-    # If it's a dictionary, inspect its contents
-    if isinstance(audio_data, dict):
-        st.write(f"Audio data contents: {audio_data}")  # See the dictionary structure
-        
-        # Extract the audio file path (adjust based on the actual structure)
-        audio_file_path = audio_data.get("file_path")  # Assuming the dictionary contains a file_path key
-        
-        if audio_file_path:
-            with sr.AudioFile(audio_file_path) as source:
-                r = sr.Recognizer()
-                audio = r.record(source)
-                try:
-                    query = r.recognize_google(audio)
-                    st.success(f"🗣️ Transcribed Question: {query}")
-                except sr.UnknownValueError:
-                    st.error("Speech Recognition could not understand audio.")
-                except sr.RequestError as e:
-                    st.error(f"Could not request results from Google Speech Recognition service; {e}")
-        else:
-            st.error("No audio file path found in the received data.")
-    else:
-        st.error(f"Received audio data is not in the expected dictionary format. It's of type {type(audio_data)}")
-
-elif text_query:
-    query = text_query
-
-if query:
-    response = agent.run({"question": query, "chat_history": []})
-    st.write(response)
-
-    # Text-to-Speech
-    tts = gTTS(text=response, lang='en')
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
-        tts.save(fp.name)
-        st.audio(fp.name, format="audio/mp3")
-
-        # Cleanup audio file
-        os.unlink(fp.name)
-
-    # Cleanup PDF
+    # Cleanup PDF and graph image after download
     os.unlink(pdf_path)
+    os.unlink(graph_img_path)
 
 else:
     st.info("📤 Please upload a financial statement PDF to begin.")
@@ -267,3 +217,43 @@ else:
 
         _Built with Streamlit, LangChain, and OpenAI._
         """)
+
+# --- Question Answering Section ---
+st.subheader("💬 Ask a Question")
+question_type = st.radio("How would you like to ask your question?", ["Text", "Voice"])
+
+# Handle Text Question
+if question_type == "Text":
+    question = st.text_input("Type your question here:")
+    if question:
+        response = agent.run({"question": question, "chat_history": []})
+        st.write(f"🔍 **Answer:** {response}")
+        tts = gTTS(response)
+        tts.save("answer.mp3")
+        st.audio("answer.mp3")
+
+# Handle Voice Question
+elif question_type == "Voice":
+    mic = mic_recorder()
+    st.write("🔴 Press the button and ask your question!")
+    if mic.recorded_audio:
+        audio_file = mic.recorded_audio
+        with open("temp_audio.wav", "wb") as f:
+            f.write(audio_file)
+
+        # Use Speech Recognition to convert speech to text
+        recognizer = sr.Recognizer()
+        with sr.AudioFile("temp_audio.wav") as source:
+            audio = recognizer.record(source)
+            try:
+                question_text = recognizer.recognize_google(audio)
+                st.write(f"📝 You asked: {question_text}")
+                response = agent.run({"question": question_text, "chat_history": []})
+                st.write(f"🔍 **Answer:** {response}")
+                tts = gTTS(response)
+                tts.save("answer.mp3")
+                st.audio("answer.mp3")
+            except sr.UnknownValueError:
+                st.error("Sorry, I could not understand the audio.")
+            except sr.RequestError:
+                st.error("Could not request results from Google Speech Recognition service.")
