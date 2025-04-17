@@ -10,3 +10,4 @@ langchain
 PyMuPDF
 openai
 faiss-cpu
+fpdf
