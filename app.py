@@ -192,27 +192,27 @@ if question_type == "Text":
         st.audio("answer.mp3")
 
 # Handle Voice Question
-elif question_type == "Voice":
-    mic = mic_recorder()
-    st.write("🔴 Press the button and ask your question!")
-    if mic.recorded_audio:
-        audio_file = mic.recorded_audio
-        with open("temp_audio.wav", "wb") as f:
-            f.write(audio_file)
+# elif question_type == "Voice":
+#     mic = mic_recorder()
+#     st.write("🔴 Press the button and ask your question!")
+#     if mic.recorded_audio:
+#         audio_file = mic.recorded_audio
+#         with open("temp_audio.wav", "wb") as f:
+#             f.write(audio_file)
 
-        # Use Speech Recognition to convert speech to text
-        recognizer = sr.Recognizer()
-        with sr.AudioFile("temp_audio.wav") as source:
-            audio = recognizer.record(source)
-            try:
-                question_text = recognizer.recognize_google(audio)
-                st.write(f"📝 You asked: {question_text}")
-                response = agent.run({"question": question_text, "chat_history": []})
-                st.write(f"🔍 **Answer:** {response}")
-                tts = gTTS(response)
-                tts.save("answer.mp3")
-                st.audio("answer.mp3")
-            except sr.UnknownValueError:
-                st.error("Sorry, I could not understand the audio.")
-            except sr.RequestError:
-                st.error("Could not request results from Google Speech Recognition service.")
+#         # Use Speech Recognition to convert speech to text
+#         recognizer = sr.Recognizer()
+#         with sr.AudioFile("temp_audio.wav") as source:
+#             audio = recognizer.record(source)
+#             try:
+#                 question_text = recognizer.recognize_google(audio)
+#                 st.write(f"📝 You asked: {question_text}")
+#                 response = agent.run({"question": question_text, "chat_history": []})
+#                 st.write(f"🔍 **Answer:** {response}")
+#                 tts = gTTS(response)
+#                 tts.save("answer.mp3")
+#                 st.audio("answer.mp3")
+#             except sr.UnknownValueError:
+#                 st.error("Sorry, I could not understand the audio.")
+#             except sr.RequestError:
+#                 st.error("Could not request results from Google Speech Recognition service.")
