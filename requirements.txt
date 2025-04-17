@@ -1,12 +1,14 @@
-streamlit==1.44.1
-Pillow==8.4.0
-matplotlib==3.4.3
-gTTS==2.2.3
-SpeechRecognition==3.8.1
-pyaudio==0.2.11
-streamlit-mic-recorder==0.0.1
-langchain_community==0.0.2  # or whatever the latest version is
-PyMuPDF==1.18.19
-openai==0.27.0
-faiss-cpu==1.7.3
-plotly==5.5.0
+streamlit
+Pillow
+matplotlib>=3.8.0           # Ensures SafeConfigParser error is avoided
+gTTS
+SpeechRecognition
+pyaudio
+streamlit-mic-recorder
+langchain>=0.2.0             # Latest LangChain version
+langchain-community>=0.0.8   # Required for updated imports like FAISS, PyMuPDFLoader
+langchain-core>=0.1.25       # Core module required by LangChain v0.2+
+PyMuPDF
+openai
+faiss-cpu
+plotly
