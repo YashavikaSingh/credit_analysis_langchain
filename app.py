@@ -70,7 +70,6 @@ def calculate_financial_ratios(debt, equity, receivables, inventories, payables,
     }
 
 def visualize_ratios(ratios):
-    # Select only the desired ratios
     selected_keys = ["Quick Ratio", "Current Ratio", "Equity Ratio", "Debt to Equity Ratio"]
     visual_ratios = {k: ratios[k] for k in selected_keys if k in ratios}
 
@@ -84,6 +83,7 @@ def visualize_ratios(ratios):
     ax.grid(True, axis='x', linestyle='--', alpha=0.6)
 
     st.pyplot(fig)
+    return fig  # Return the matplotlib figure
 # --- Main App ---
 if uploaded_file:
     try:
@@ -155,10 +155,52 @@ if uploaded_file:
 
             # Visualize Ratios
             st.subheader("📉 Financial Ratios Visualization")
-            visualize_ratios(ratios)
+            fig = visualize_ratios(ratios)
+
+            
 
     except Exception as e:
         st.error(f"🚨 An error occurred: {str(e)}")
+# Generate a downloadable PDF summary
+st.subheader("📄 Download Summary as PDF")
+
+# Save the chart as an image temporarily
+graph_img_path = os.path.join(tempfile.gettempdir(), "ratios_chart.png")
+fig.savefig(graph_img_path, bbox_inches="tight")
+
+pdf = FPDF()
+pdf.add_page()
+pdf.set_font("Arial", size=12)
+
+pdf.cell(200, 10, txt="Financial Statement Summary", ln=True, align="C")
+pdf.ln(10)
+
+pdf.set_font("Arial", size=11)
+pdf.cell(200, 10, txt="Inputs Used for Ratio Calculation:", ln=True)
+for key, val in inputs_dict.items():
+    pdf.cell(200, 8, txt=f"{key}: {val}", ln=True)
+
+pdf.ln(5)
+pdf.cell(200, 10, txt="Calculated Financial Ratios:", ln=True)
+for key, val in ratios.items():
+    display_val = f"{val:.2f}" if isinstance(val, float) else str(val)
+    pdf.cell(200, 8, txt=f"{key}: {display_val}", ln=True)
+
+# Add the image
+pdf.ln(10)
+pdf.cell(200, 10, txt="Financial Ratios Chart:", ln=True)
+pdf.image(graph_img_path, x=10, w=180)
+
+# Save PDF to temp file and create download button
+with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
+    pdf.output(tmp_pdf.name)
+    tmp_pdf.seek(0)
+    st.download_button(
+        label="📥 Download PDF Summary with Graph",
+        data=tmp_pdf.read(),
+        file_name="financial_summary.pdf",
+        mime="application/pdf"
+    )
 
 # Ask Question via Audio or Text
 st.subheader("🎤 Ask a Question by Voice or Text")
