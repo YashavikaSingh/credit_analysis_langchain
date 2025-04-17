@@ -12,6 +12,7 @@ from langchain.llms import OpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
+from fpdf import FPDF  # Added import for FPDF
 
 # Set page layout
 st.set_page_config(page_title="Financial Statement Analyzer", layout="wide")
@@ -24,17 +25,6 @@ OPENAI_API_KEY = st.secrets["openai"]["api_key"]
 uploaded_file = st.sidebar.file_uploader("📁 Upload Financial Statement (PDF)", type="pdf")
 
 # --- Utility Functions ---
-
-def create_csv_from_data(data_dict):
-    # Convert dictionary to pandas DataFrame
-    df = pd.DataFrame(data_dict)
-    
-    # Create a CSV buffer
-    csv_buffer = StringIO()
-    df.to_csv(csv_buffer, index=False)
-    csv_buffer.seek(0)
-    
-    return csv_buffer.getvalue()
 
 def safe_get(query, agent):
     response = agent.run({"question": query, "chat_history": []})
@@ -80,27 +70,21 @@ def calculate_financial_ratios(debt, equity, receivables, inventories, payables,
         "Equity Ratio": equity_ratio
     }
 
-def visualize_ratios_plotly(ratios):
+def visualize_ratios(ratios):
     selected_keys = ["Quick Ratio", "Current Ratio", "Equity Ratio", "Debt to Equity Ratio"]
     visual_ratios = {k: ratios[k] for k in selected_keys if k in ratios}
 
     ratio_labels = list(visual_ratios.keys())
     ratio_values = list(visual_ratios.values())
 
-    fig = go.Figure(go.Bar(
-        x=ratio_values,
-        y=ratio_labels,
-        orientation='h',
-        marker=dict(color=['#3498db', '#2ecc71', '#9b59b6', '#e74c3c'])
-    ))
-    fig.update_layout(
-        title="Selected Financial Ratios",
-        xaxis_title="Ratio Value",
-        yaxis_title="Ratio Type",
-        showlegend=False
-    )
-    return fig
+    fig, ax = plt.subplots()
+    ax.barh(ratio_labels, ratio_values, color=['#3498db', '#2ecc71', '#9b59b6', '#e74c3c'])
+    ax.set_xlabel('Ratio Value')
+    ax.set_title('Selected Financial Ratios')
+    ax.grid(True, axis='x', linestyle='--', alpha=0.6)
 
+    st.pyplot(fig)
+    return fig  # Return the matplotlib figure
 
 # --- Main App ---
 if uploaded_file:
@@ -169,40 +153,16 @@ if uploaded_file:
                     value=f"{value:.2f}" if isinstance(value, float) else value
                 )
 
-            data_for_csv = inputs_dict.copy()
-            data_for_csv.update(ratios)  # Add ratios to the data
-
-            # Create the CSV
-            csv_data = create_csv_from_data(data_for_csv)
-
-            # Provide the user a button to download the CSV
-            st.download_button(
-                label="📥 Download Financial Data & Ratios as CSV",
-                data=csv_data,
-                file_name="financial_data_ratios.csv",
-                mime="text/csv"
-            )
-
             # Visualize Ratios
             st.subheader("📉 Financial Ratios Visualization")
-
-            fig = visualize_ratios_plotly(ratios)
-            st.plotly_chart(fig)
-
-            # Provide the user a button to download the figure as a PNG
-            st.download_button(
-                label="📥 Download Interactive Chart as PNG",
-                data=fig.to_image(format="png"),
-                file_name="interactive_ratios_chart.png",
-                mime="image/png"
-            )
-
+            fig = visualize_ratios(ratios)
 
     except Exception as e:
         st.error(f"🚨 An error occurred: {str(e)}")
 
     # Generate a downloadable PDF summary
     st.subheader("📄 Download Summary as PDF")
+
 
 
 else:
