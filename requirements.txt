@@ -8,4 +8,5 @@ tiktoken
 speechrecognition
 gtts
 pydub
-streamlit-audiorec
+
+git+https://github.com/stefanrmmr/streamlit_audio_recorder
