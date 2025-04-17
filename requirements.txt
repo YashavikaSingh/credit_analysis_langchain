@@ -5,7 +5,4 @@ pymupdf
 openai
 langchain-community
 tiktoken
-unstructured>=0.10.12
-pdfminer.six>=20221105
-pi_heif
-unstructured-inference
+pdf2image
