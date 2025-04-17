@@ -26,6 +26,17 @@ uploaded_file = st.sidebar.file_uploader("📁 Upload Financial Statement (PDF)"
 
 # --- Utility Functions ---
 
+def create_csv_from_data(data_dict):
+    # Convert dictionary to pandas DataFrame
+    df = pd.DataFrame(data_dict)
+    
+    # Create a CSV buffer
+    csv_buffer = StringIO()
+    df.to_csv(csv_buffer, index=False)
+    csv_buffer.seek(0)
+    
+    return csv_buffer.getvalue()
+
 def safe_get(query, agent):
     response = agent.run({"question": query, "chat_history": []})
     match = re.search(r"\$?[\d,]+\.\d+|\$?[\d,]+", response)
@@ -70,21 +81,27 @@ def calculate_financial_ratios(debt, equity, receivables, inventories, payables,
         "Equity Ratio": equity_ratio
     }
 
-def visualize_ratios(ratios):
+def visualize_ratios_plotly(ratios):
     selected_keys = ["Quick Ratio", "Current Ratio", "Equity Ratio", "Debt to Equity Ratio"]
     visual_ratios = {k: ratios[k] for k in selected_keys if k in ratios}
 
     ratio_labels = list(visual_ratios.keys())
     ratio_values = list(visual_ratios.values())
 
-    fig, ax = plt.subplots()
-    ax.barh(ratio_labels, ratio_values, color=['#3498db', '#2ecc71', '#9b59b6', '#e74c3c'])
-    ax.set_xlabel('Ratio Value')
-    ax.set_title('Selected Financial Ratios')
-    ax.grid(True, axis='x', linestyle='--', alpha=0.6)
+    fig = go.Figure(go.Bar(
+        x=ratio_values,
+        y=ratio_labels,
+        orientation='h',
+        marker=dict(color=['#3498db', '#2ecc71', '#9b59b6', '#e74c3c'])
+    ))
+    fig.update_layout(
+        title="Selected Financial Ratios",
+        xaxis_title="Ratio Value",
+        yaxis_title="Ratio Type",
+        showlegend=False
+    )
+    return fig
 
-    st.pyplot(fig)
-    return fig  # Return the matplotlib figure
 
 # --- Main App ---
 if uploaded_file:
@@ -153,9 +170,34 @@ if uploaded_file:
                     value=f"{value:.2f}" if isinstance(value, float) else value
                 )
 
+            data_for_csv = inputs_dict.copy()
+            data_for_csv.update(ratios)  # Add ratios to the data
+
+            # Create the CSV
+            csv_data = create_csv_from_data(data_for_csv)
+
+            # Provide the user a button to download the CSV
+            st.download_button(
+                label="📥 Download Financial Data & Ratios as CSV",
+                data=csv_data,
+                file_name="financial_data_ratios.csv",
+                mime="text/csv"
+            )
+
             # Visualize Ratios
             st.subheader("📉 Financial Ratios Visualization")
-            fig = visualize_ratios(ratios)
+
+            fig = visualize_ratios_plotly(ratios)
+            st.plotly_chart(fig)
+
+            # Provide the user a button to download the figure as a PNG
+            st.download_button(
+                label="📥 Download Interactive Chart as PNG",
+                data=fig.to_image(format="png"),
+                file_name="interactive_ratios_chart.png",
+                mime="image/png"
+            )
+
 
     except Exception as e:
         st.error(f"🚨 An error occurred: {str(e)}")
@@ -163,47 +205,6 @@ if uploaded_file:
     # Generate a downloadable PDF summary
     st.subheader("📄 Download Summary as PDF")
 
-    # Save the chart as an image temporarily
-    graph_img_path = os.path.join(tempfile.gettempdir(), "ratios_chart.png")
-    fig.savefig(graph_img_path, bbox_inches="tight")
-
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
-
-    pdf.cell(200, 10, txt="Financial Statement Summary", ln=True, align="C")
-    pdf.ln(10)
-
-    pdf.set_font("Arial", size=11)
-    pdf.cell(200, 10, txt="Inputs Used for Ratio Calculation:", ln=True)
-    for key, val in inputs_dict.items():
-        pdf.cell(200, 8, txt=f"{key}: {val}", ln=True)
-
-    pdf.ln(5)
-    pdf.cell(200, 10, txt="Calculated Financial Ratios:", ln=True)
-    for key, val in ratios.items():
-        display_val = f"{val:.2f}" if isinstance(val, float) else str(val)
-        pdf.cell(200, 8, txt=f"{key}: {display_val}", ln=True)
-
-    # Add the image
-    pdf.ln(10)
-    pdf.cell(200, 10, txt="Financial Ratios Chart:", ln=True)
-    pdf.image(graph_img_path, x=10, w=180)
-
-    # Save PDF to temp file and create download button
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
-        pdf.output(tmp_pdf.name)
-        tmp_pdf.seek(0)
-        st.download_button(
-            label="📥 Download PDF Summary with Graph",
-            data=tmp_pdf.read(),
-            file_name="financial_summary.pdf",
-            mime="application/pdf"
-        )
-
-    # Cleanup PDF and graph image after download
-    os.unlink(pdf_path)
-    os.unlink(graph_img_path)
 
 else:
     st.info("📤 Please upload a financial statement PDF to begin.")
