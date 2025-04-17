@@ -5,3 +5,7 @@ pymupdf
 openai
 langchain-community
 tiktoken
+speechrecognition
+gtts
+pydub
+streamlit-audiorec

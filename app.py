@@ -1,12 +1,16 @@
 import streamlit as st
 import re
 import os
+import base64
+import tempfile
+import speech_recognition as sr
+from gtts import gTTS
+from streamlit_audiorec import st_audiorec
 from tempfile import NamedTemporaryFile
-from langchain.document_loaders import UnstructuredPDFLoader
+from langchain.document_loaders import PyMuPDFLoader
 from langchain.llms import OpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
-from langchain.document_loaders import PyMuPDFLoader # Changed import
 from langchain.chains import ConversationalRetrievalChain
 
 # Set page layout
@@ -109,12 +113,41 @@ if uploaded_file:
                     value=f"{value:.2f}" if isinstance(value, float) else value
                 )
 
-            # Ask custom questions
-            st.subheader("🤖 Ask a Question About the Financials")
-            custom_query = st.text_input("Enter your question:")
-            if custom_query:
-                response = agent.run({"question": custom_query, "chat_history": []})
+            # Ask Question via Audio or Text
+            st.subheader("🎤 Ask a Question by Voice or Text")
+            audio_data = st_audiorec()
+            text_query = st.text_input("Or enter your question manually:")
+
+            query = None
+
+            if audio_data is not None:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
+                    f.write(audio_data)
+                    audio_path = f.name
+
+                r = sr.Recognizer()
+                with sr.AudioFile(audio_path) as source:
+                    audio = r.record(source)
+                    try:
+                        query = r.recognize_google(audio)
+                        st.success(f"🗣️ Transcribed Question: {query}")
+                    except sr.UnknownValueError:
+                        st.error("Speech Recognition could not understand audio.")
+                    except sr.RequestError as e:
+                        st.error(f"Could not request results from Google Speech Recognition service; {e}")
+
+            elif text_query:
+                query = text_query
+
+            if query:
+                response = agent.run({"question": query, "chat_history": []})
                 st.write(response)
+
+                # Text-to-Speech
+                tts = gTTS(text=response, lang='en')
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
+                    tts.save(fp.name)
+                    st.audio(fp.name, format="audio/mp3")
 
             # Cleanup
             os.unlink(pdf_path)
@@ -129,7 +162,8 @@ else:
         1. Upload a financial statement PDF using the sidebar.
         2. The app extracts financial data using AI (OCR-enabled).
         3. Key financial ratios are calculated and color-coded.
-        4. You can ask custom questions about the statement.
+        4. You can ask questions using your **voice or text**.
+        5. Responses are shown and **spoken back to you**.
 
         _Built with Streamlit, LangChain, and OpenAI._
         """)
