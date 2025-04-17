@@ -9,5 +9,3 @@ speechrecognition
 gtts
 pydub
 streamlit-mic-recorder
-
-git+https://github.com/stefanrmmr/streamlit_audio_recorder

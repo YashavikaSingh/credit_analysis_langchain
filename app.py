@@ -1,17 +1,16 @@
 import streamlit as st
 import re
 import os
-import base64
 import tempfile
 import speech_recognition as sr
 from gtts import gTTS
+from streamlit_mic_recorder import mic_recorder
 from tempfile import NamedTemporaryFile
 from langchain.document_loaders import PyMuPDFLoader
 from langchain.llms import OpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
-from streamlit_mic_recorder import mic_recorder
 
 # Set page layout
 st.set_page_config(page_title="Financial Statement Analyzer", layout="wide")
@@ -87,7 +86,7 @@ if uploaded_file:
             agent = ConversationalRetrievalChain.from_llm(llm, retriever=retriever)
 
             # Extracting Financial Data
-            st.subheader("📅 Extracting Financial Data")
+            st.subheader("📥 Extracting Financial Data")
             col1, col2 = st.columns(2)
             with col1:
                 total_assets = safe_get("What is the total value of assets in USD?", agent)
@@ -115,14 +114,14 @@ if uploaded_file:
 
             # Ask Question via Audio or Text
             st.subheader("🎤 Ask a Question by Voice or Text")
-            wav_audio_data = mic_recorder(start_prompt="🎤 Click to record", stop_prompt="⏹️ Stop recording", key="mic")
+            audio_data = mic_recorder()
             text_query = st.text_input("Or enter your question manually:")
 
             query = None
 
-            if wav_audio_data:
+            if audio_data is not None:
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
-                    f.write(wav_audio_data)
+                    f.write(audio_data)
                     audio_path = f.name
 
                 r = sr.Recognizer()
@@ -156,7 +155,7 @@ if uploaded_file:
         st.error(f"🚨 An error occurred: {str(e)}")
 
 else:
-    st.info("📄 Please upload a financial statement PDF to begin.")
+    st.info("📤 Please upload a financial statement PDF to begin.")
     with st.expander("ℹ️ How to Use This App"):
         st.markdown("""
         1. Upload a financial statement PDF using the sidebar.
