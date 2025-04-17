@@ -6,6 +6,7 @@ from langchain.document_loaders import UnstructuredPDFLoader
 from langchain.llms import OpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
+from langchain.document_loaders import PyMuPDFLoader # Changed import
 from langchain.chains import ConversationalRetrievalChain
 
 # Set page layout
@@ -71,7 +72,7 @@ if uploaded_file:
                 pdf_path = tmp.name
 
             # Use OCR-capable loader
-            loader = UnstructuredPDFLoader(pdf_path)
+            loader = PyMuPDFLoader(pdf_path)
             documents = loader.load()
 
             # Setup LangChain components

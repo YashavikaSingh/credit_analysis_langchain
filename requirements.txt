@@ -5,4 +5,3 @@ pymupdf
 openai
 langchain-community
 tiktoken
-pdf2image
