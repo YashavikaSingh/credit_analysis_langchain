@@ -1,5 +1,6 @@
 import streamlit as st
 import re
+import io
 import os
 import tempfile
 from tempfile import NamedTemporaryFile

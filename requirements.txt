@@ -7,5 +7,6 @@ langchain-core     # Core module required by LangChain v0.2+
 PyMuPDF
 openai
 faiss-cpu
+pandas
 plotly
 tiktoken
