@@ -1,13 +1,9 @@
 streamlit
 Pillow
-matplotlib>=3.8.0           # Ensures SafeConfigParser error is avoided
-gTTS
-SpeechRecognition
-pyaudio
-streamlit-mic-recorder
-langchain>=0.2.0             # Latest LangChain version
-langchain-community>=0.0.8   # Required for updated imports like FAISS, PyMuPDFLoader
-langchain-core>=0.1.25       # Core module required by LangChain v0.2+
+matplotlib        # Ensures SafeConfigParser error is avoided
+langchain      # Latest LangChain version
+langchain-community # Required for updated imports like FAISS, PyMuPDFLoader
+langchain-core     # Core module required by LangChain v0.2+
 PyMuPDF
 openai
 faiss-cpu
