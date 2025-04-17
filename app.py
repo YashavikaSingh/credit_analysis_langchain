@@ -2,10 +2,11 @@ import streamlit as st
 import re
 import os
 import tempfile
-import speech_recognition as sr
-from gtts import gTTS
-from streamlit_mic_recorder import mic_recorder
 from tempfile import NamedTemporaryFile
+import matplotlib.pyplot as plt
+from gtts import gTTS
+import speech_recognition as sr
+from streamlit_mic_recorder import mic_recorder
 from langchain.document_loaders import PyMuPDFLoader
 from langchain.llms import OpenAI
 from langchain.embeddings import OpenAIEmbeddings
@@ -38,33 +39,41 @@ def safe_get(query, agent):
         st.warning(f"No numeric value found for query: {query}")
         return 0.0
 
-def calculate_financial_ratios(debt, equity, receivables, inventories, payables, current_assets, current_liabilities, total_assets):
-    if equity == 0:
-        debt_to_equity = float('inf')
-        equity_ratio = 0
-    else:
-        debt_to_equity = debt / equity
-        equity_ratio = equity / total_assets
-
-    net_working_capital = receivables + inventories - payables
+def calculate_financial_ratios(debt, equity, receivables, inventories, payables, current_assets, current_liabilities, total_assets, net_income, revenue):
+    # Liquidity Ratios
     current_ratio = current_assets / current_liabilities if current_liabilities else float('inf')
+    quick_ratio = (current_assets - inventories) / current_liabilities if current_liabilities else float('inf')
+
+    # Profitability Ratios
+    net_profit_margin = (net_income / revenue) * 100 if revenue != 0 else 0
+    return_on_equity = (net_income / equity) * 100 if equity != 0 else 0
+
+    # Leverage Ratios
+    debt_to_equity = debt / equity if equity != 0 else float('inf')
+
+    # Earnings per Share
+    eps = net_income / 1_000_000  # Assuming a million shares outstanding for simplicity
 
     return {
         "Debt to Equity Ratio": debt_to_equity,
-        "Net Working Capital": net_working_capital,
-        "Equity Ratio": equity_ratio,
-        "Current Ratio": current_ratio
+        "Net Profit Margin (%)": net_profit_margin,
+        "Return on Equity (%)": return_on_equity,
+        "Current Ratio": current_ratio,
+        "Quick Ratio": quick_ratio,
+        "Earnings per Share (EPS)": eps
     }
 
-def get_ratio_status(ratio_name, value):
-    if ratio_name == "Debt to Equity Ratio":
-        return "🟢 Good" if value < 2 else "🟠 Warning" if value < 3 else "🔴 Concern"
-    elif ratio_name == "Current Ratio":
-        return "🟢 Good" if value > 1.5 else "🟠 Warning" if value > 1 else "🔴 Concern"
-    elif ratio_name == "Equity Ratio":
-        return "🟢 Good" if value > 0.5 else "🟠 Warning" if value > 0.3 else "🔴 Concern"
-    else:
-        return "ℹ️ Informational"
+def visualize_ratios(ratios):
+    # Bar chart for key ratios
+    ratio_labels = list(ratios.keys())
+    ratio_values = list(ratios.values())
+
+    fig, ax = plt.subplots()
+    ax.barh(ratio_labels, ratio_values, color=['green', 'blue', 'orange', 'red', 'purple', 'yellow'])
+    ax.set_xlabel('Ratio Value')
+    ax.set_title('Key Financial Ratios')
+
+    st.pyplot(fig)
 
 # --- Main App ---
 if uploaded_file:
@@ -93,6 +102,8 @@ if uploaded_file:
                 total_debt = safe_get("What is the total debt mentioned in the financial statement?", agent)
                 total_equity = safe_get("What is the total equity mentioned in the financial statement?", agent)
                 current_assets = safe_get("What is the total value of current assets in USD?", agent)
+                net_income = safe_get("What is the net income in USD?", agent)
+                revenue = safe_get("What is the total revenue in USD?", agent)
             with col2:
                 account_receivables = safe_get("What are the account receivables in the financial statement?", agent)
                 inventories = safe_get("What is the inventory value mentioned in the financial statement?", agent)
@@ -103,58 +114,18 @@ if uploaded_file:
             st.subheader("📊 Key Financial Ratios")
             ratios = calculate_financial_ratios(
                 total_debt, total_equity, account_receivables, inventories,
-                account_payables, current_assets, current_liabilities, total_assets
+                account_payables, current_assets, current_liabilities, total_assets, net_income, revenue
             )
 
             for ratio, value in ratios.items():
                 st.metric(
-                    label=f"{ratio} - {get_ratio_status(ratio, value)}",
+                    label=f"{ratio}",
                     value=f"{value:.2f}" if isinstance(value, float) else value
                 )
 
-            # Ask Question via Audio or Text
-            st.subheader("🎤 Ask a Question by Voice or Text")
-            audio_data = mic_recorder()
-            text_query = st.text_input("Or enter your question manually:")
-
-            query = None
-
-            if audio_data is not None:
-                # Debugging: Check the type and structure of audio_data
-                st.write(f"Audio data type: {type(audio_data)}")
-                if isinstance(audio_data, bytes):  # If it's in byte format, proceed
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
-                        f.write(audio_data)  # This should work now
-                        audio_path = f.name
-
-                    r = sr.Recognizer()
-                    with sr.AudioFile(audio_path) as source:
-                        audio = r.record(source)
-                        try:
-                            query = r.recognize_google(audio)
-                            st.success(f"🗣️ Transcribed Question: {query}")
-                        except sr.UnknownValueError:
-                            st.error("Speech Recognition could not understand audio.")
-                        except sr.RequestError as e:
-                            st.error(f"Could not request results from Google Speech Recognition service; {e}")
-                else:
-                    st.error(f"Received audio data is not in the expected byte format. It's of type {type(audio_data)}")
-
-            elif text_query:
-                query = text_query
-
-            if query:
-                response = agent.run({"question": query, "chat_history": []})
-                st.write(response)
-
-                # Text-to-Speech
-                tts = gTTS(text=response, lang='en')
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
-                    tts.save(fp.name)
-                    st.audio(fp.name, format="audio/mp3")
-
-            # Cleanup
-            os.unlink(pdf_path)
+            # Visualize Ratios
+            st.subheader("📉 Financial Ratios Visualization")
+            visualize_ratios(ratios)
 
     except Exception as e:
         st.error(f"🚨 An error occurred: {str(e)}")
