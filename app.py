@@ -52,7 +52,11 @@ def calculate_financial_ratios(debt, equity, receivables, inventories, payables,
     debt_to_equity = debt / equity if equity != 0 else float('inf')
 
     # Earnings per Share
-    eps = net_income / 1_000_000  # Assuming a million shares outstanding for simplicity
+    eps = net_income / 1_000_000  # Assuming a million shares outstanding
+
+    # New Ratios
+    net_working_capital = receivables + inventories - payables
+    equity_ratio = equity / total_assets if total_assets != 0 else 0
 
     return {
         "Debt to Equity Ratio": debt_to_equity,
@@ -60,21 +64,25 @@ def calculate_financial_ratios(debt, equity, receivables, inventories, payables,
         "Return on Equity (%)": return_on_equity,
         "Current Ratio": current_ratio,
         "Quick Ratio": quick_ratio,
-        "Earnings per Share (EPS)": eps
+        "Earnings per Share (EPS)": eps,
+        "Net Working Capital": net_working_capital,
+        "Equity Ratio": equity_ratio
     }
 
 def visualize_ratios(ratios):
-    # Bar chart for key ratios
-    ratio_labels = list(ratios.keys())
-    ratio_values = list(ratios.values())
+    # Filter out EPS for visualization
+    visual_ratios = {k: v for k, v in ratios.items() if "EPS" not in k}
+
+    ratio_labels = list(visual_ratios.keys())
+    ratio_values = list(visual_ratios.values())
 
     fig, ax = plt.subplots()
-    ax.barh(ratio_labels, ratio_values, color=['green', 'blue', 'orange', 'red', 'purple', 'yellow'])
-    ax.set_xlabel('Ratio Value')
-    ax.set_title('Key Financial Ratios')
+    ax.barh(ratio_labels, ratio_values, color='skyblue')
+    ax.set_xlabel('Value')
+    ax.set_title('Financial Ratios')
+    ax.grid(True, axis='x', linestyle='--', alpha=0.7)
 
     st.pyplot(fig)
-
 # --- Main App ---
 if uploaded_file:
     try:
