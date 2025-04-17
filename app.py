@@ -110,6 +110,27 @@ if uploaded_file:
                 account_payables = safe_get("What are the account payables mentioned in the financial statement?", agent)
                 current_liabilities = safe_get("What is the total value of current liabilities in USD?", agent)
 
+
+
+            st.subheader("📊 Key Financial Ratios")
+
+            # Show intermediate inputs for transparency/debugging
+            inputs_dict = {
+                "Total Debt": total_debt,
+                "Total Equity": total_equity,
+                "Accounts Receivable": account_receivables,
+                "Inventories": inventories,
+                "Accounts Payable": account_payables,
+                "Current Assets": current_assets,
+                "Current Liabilities": current_liabilities,
+                "Total Assets": total_assets,
+                "Net Income": net_income,
+                "Revenue": revenue
+            }
+
+            st.write("🧾 **Inputs to Ratio Calculation:**")
+            st.json(inputs_dict)
+
             # Show Ratios
             st.subheader("📊 Key Financial Ratios")
             ratios = calculate_financial_ratios(
