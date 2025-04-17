@@ -1,7 +1,6 @@
 import streamlit as st
 import re
 import os
-import base64
 from tempfile import NamedTemporaryFile
 from langchain.document_loaders import UnstructuredPDFLoader
 from langchain.llms import OpenAI
@@ -71,21 +70,6 @@ if uploaded_file:
                 tmp.write(uploaded_file.getvalue())
                 pdf_path = tmp.name
 
-            with open(pdf_path, "rb") as file:
-                pdf_data = file.read()
-
-            # Display PDF in left column inside an expander
-            left_col, right_col = st.columns([1, 2])
-
-            with left_col:
-                st.markdown("### 📄 PDF Preview")
-                with st.expander("Click to View PDF"):
-                    base64_pdf = base64.b64encode(pdf_data).decode("utf-8")
-                    pdf_display = f'''
-                        <embed src="data:application/pdf;base64,{base64_pdf}" width="100%" height="600" type="application/pdf">
-                        '''
-                    st.markdown(pdf_display, unsafe_allow_html=True)
-
             # Use OCR-capable loader
             loader = UnstructuredPDFLoader(pdf_path)
             documents = loader.load()
@@ -97,43 +81,39 @@ if uploaded_file:
             retriever = vectorstore.as_retriever()
             agent = ConversationalRetrievalChain.from_llm(llm, retriever=retriever)
 
-            with right_col:
-                st.subheader("📥 Extracting Financial Data")
-                col1, col2 = st.columns(2)
-                with col1:
-                    total_assets = safe_get("What is the total value of assets in USD?", agent)
-                    total_debt = safe_get("What is the total debt mentioned in the financial statement?", agent)
-                    total_equity = safe_get("What is the total equity mentioned in the financial statement?", agent)
-                    current_assets = safe_get("What is the total value of current assets in USD?", agent)
-                with col2:
-                    account_receivables = safe_get("What are the account receivables in the financial statement?", agent)
-                    inventories = safe_get("What is the inventory value mentioned in the financial statement?", agent)
-                    account_payables = safe_get("What are the account payables mentioned in the financial statement?", agent)
-                    current_liabilities = safe_get("What is the total value of current liabilities in USD?", agent)
+            # Extracting Financial Data
+            st.subheader("📥 Extracting Financial Data")
+            col1, col2 = st.columns(2)
+            with col1:
+                total_assets = safe_get("What is the total value of assets in USD?", agent)
+                total_debt = safe_get("What is the total debt mentioned in the financial statement?", agent)
+                total_equity = safe_get("What is the total equity mentioned in the financial statement?", agent)
+                current_assets = safe_get("What is the total value of current assets in USD?", agent)
+            with col2:
+                account_receivables = safe_get("What are the account receivables in the financial statement?", agent)
+                inventories = safe_get("What is the inventory value mentioned in the financial statement?", agent)
+                account_payables = safe_get("What are the account payables mentioned in the financial statement?", agent)
+                current_liabilities = safe_get("What is the total value of current liabilities in USD?", agent)
 
-                # Show Ratios
-                st.subheader("📊 Key Financial Ratios")
-                ratios = calculate_financial_ratios(
-                    total_debt, total_equity, account_receivables, inventories,
-                    account_payables, current_assets, current_liabilities, total_assets
+            # Show Ratios
+            st.subheader("📊 Key Financial Ratios")
+            ratios = calculate_financial_ratios(
+                total_debt, total_equity, account_receivables, inventories,
+                account_payables, current_assets, current_liabilities, total_assets
+            )
+
+            for ratio, value in ratios.items():
+                st.metric(
+                    label=f"{ratio} - {get_ratio_status(ratio, value)}",
+                    value=f"{value:.2f}" if isinstance(value, float) else value
                 )
 
-                for ratio, value in ratios.items():
-                    st.metric(
-                        label=f"{ratio} - {get_ratio_status(ratio, value)}",
-                        value=f"{value:.2f}" if isinstance(value, float) else value
-                    )
-
-                # Ask custom questions
-                st.subheader("🤖 Ask a Question About the Financials")
-                custom_query = st.text_input("Enter your question:")
-                if custom_query:
-                    response = agent.run({"question": custom_query, "chat_history": []})
-                    st.write(response)
-
-            # Optional: show raw text to debug OCR
-            # st.subheader("🧪 Raw Text Sample")
-            # st.code(documents[0].page_content[:1000])
+            # Ask custom questions
+            st.subheader("🤖 Ask a Question About the Financials")
+            custom_query = st.text_input("Enter your question:")
+            if custom_query:
+                response = agent.run({"question": custom_query, "chat_history": []})
+                st.write(response)
 
             # Cleanup
             os.unlink(pdf_path)
