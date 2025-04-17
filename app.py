@@ -74,14 +74,14 @@ if uploaded_file:
             with open(pdf_path, "rb") as file:
                 pdf_data = file.read()
 
-            # Display PDF in left column
+            # Display PDF in left column inside an expander
             left_col, right_col = st.columns([1, 2])
 
             with left_col:
                 st.markdown("### 📄 PDF Preview")
                 with st.expander("Click to View PDF"):
                     base64_pdf = base64.b64encode(pdf_data).decode("utf-8")
-                    pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="800" type="application/pdf"></iframe>'
+                    pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="600" type="application/pdf"></iframe>'
                     st.markdown(pdf_display, unsafe_allow_html=True)
 
             # Use OCR-capable loader
