@@ -1,7 +1,6 @@
 import streamlit as st
 import re
 import os
-import base64
 from tempfile import NamedTemporaryFile
 from langchain.document_loaders import PyMuPDFLoader
 from langchain.llms import OpenAI
@@ -9,18 +8,18 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
 
-# Set up the page
+# Set page settings
 st.set_page_config(page_title="Financial Statement Analyzer", layout="wide")
 st.title("📊 Financial Statement Analyzer")
 
-# API Key from Streamlit secrets
+# Load API key
 OPENAI_API_KEY = st.secrets["openai"]["api_key"]
 
 # Sidebar - Upload
 st.sidebar.header("📁 Upload Statement")
 uploaded_file = st.sidebar.file_uploader("Upload Financial Statement PDF", type="pdf")
 
-# Utility Functions
+# Utility functions
 def safe_get(query, agent):
     response = agent.run({"question": query, "chat_history": []})
     match = re.search(r"\$?[\d,]+\.\d+|\$?[\d,]+", response)
@@ -63,24 +62,13 @@ def get_ratio_status(ratio_name, value):
     else:
         return "ℹ️ Informational"
 
-# Main Content
+# Main app logic
 if uploaded_file:
     try:
         with st.spinner("🔍 Processing financial statement..."):
-            # Save uploaded PDF temporarily
             with NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
                 tmp.write(uploaded_file.getvalue())
                 pdf_path = tmp.name
-
-            with open(pdf_path, "rb") as file:
-                pdf_data = file.read()
-
-            # PDF Preview in main area
-            st.subheader("📄 Preview Uploaded PDF")
-            with st.expander("Click to view PDF"):
-                base64_pdf = base64.b64encode(pdf_data).decode('utf-8')
-                pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="800" type="application/pdf"></iframe>'
-                st.markdown(pdf_display, unsafe_allow_html=True)
 
             # LangChain setup
             embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
@@ -91,7 +79,7 @@ if uploaded_file:
             retriever = vectorstore.as_retriever()
             agent = ConversationalRetrievalChain.from_llm(llm, retriever=retriever)
 
-            # Extract financial metrics
+            # Financial extraction
             st.subheader("📥 Extracting Financial Data")
             col1, col2 = st.columns(2)
             with col1:
@@ -105,7 +93,7 @@ if uploaded_file:
                 account_payables = safe_get("What are the account payables mentioned in the financial statement?", agent)
                 current_liabilities = safe_get("What is the total value of current liabilities in USD?", agent)
 
-            # Calculate and show ratios
+            # Display ratios
             st.subheader("📊 Key Financial Ratios")
             ratios = calculate_financial_ratios(
                 total_debt, total_equity, account_receivables, inventories,
@@ -125,7 +113,7 @@ if uploaded_file:
                 response = agent.run({"question": custom_query, "chat_history": []})
                 st.write(response)
 
-            # Clean up temporary file
+            # Cleanup
             os.unlink(pdf_path)
 
     except Exception as e:
@@ -135,10 +123,10 @@ else:
     st.info("📤 Please upload a financial statement PDF to begin.")
     with st.expander("ℹ️ How to Use This App"):
         st.markdown("""
-        1. Upload a PDF financial statement using the sidebar.
-        2. The app will extract data like assets, liabilities, and equity.
-        3. It calculates financial ratios to assess company health.
-        4. You can ask your own questions about the data using natural language.
+        1. Upload a financial statement (PDF).
+        2. The app extracts financial metrics using OpenAI + LangChain.
+        3. Key financial ratios are calculated and displayed.
+        4. You can also ask questions about the content.
 
-        _Powered by Streamlit, LangChain, FAISS, and OpenAI._
+        _Built with Streamlit, LangChain, and OpenAI._
         """)
