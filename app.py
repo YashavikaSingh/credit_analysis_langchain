@@ -180,8 +180,8 @@ if query:
         # Cleanup audio file
         os.unlink(fp.name)
 
-# Cleanup PDF
-os.unlink(pdf_path)
+    # Cleanup PDF
+    os.unlink(pdf_path)
 
 else:
     st.info("📤 Please upload a financial statement PDF to begin.")
