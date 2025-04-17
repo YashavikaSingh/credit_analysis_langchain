@@ -4,9 +4,6 @@ import os
 import tempfile
 from tempfile import NamedTemporaryFile
 import matplotlib.pyplot as plt
-from gtts import gTTS
-import speech_recognition as sr
-from streamlit_mic_recorder import mic_recorder
 from langchain.document_loaders import PyMuPDFLoader
 from langchain.llms import OpenAI
 from langchain.embeddings import OpenAIEmbeddings
@@ -162,8 +159,6 @@ if uploaded_file:
     # Generate a downloadable PDF summary
     st.subheader("📄 Download Summary as PDF")
 
-
-
 else:
     st.info("📤 Please upload a financial statement PDF to begin.")
     with st.expander("ℹ️ How to Use This App"):
@@ -171,48 +166,14 @@ else:
         1. Upload a financial statement PDF using the sidebar.
         2. The app extracts financial data using AI (OCR-enabled).
         3. Key financial ratios are calculated and color-coded.
-        4. You can ask questions using your **voice or text**.
-        5. Responses are shown and **spoken back to you**.
+        4. Ask questions using text input.
 
         _Built with Streamlit, LangChain, and OpenAI._
         """)
 
-# --- Question Answering Section ---
+# --- Text Question Answering Section ---
 st.subheader("💬 Ask a Question")
-question_type = st.radio("How would you like to ask your question?", ["Text", "Voice"])
-
-# Handle Text Question
-if question_type == "Text":
-    question = st.text_input("Type your question here:")
-    if question:
-        response = agent.run({"question": question, "chat_history": []})
-        st.write(f"🔍 **Answer:** {response}")
-        tts = gTTS(response)
-        tts.save("answer.mp3")
-        st.audio("answer.mp3")
-
-# Handle Voice Question
-elif question_type == "Voice":
-    mic = mic_recorder()
-    st.write("🔴 Press the button and ask your question!")
-    if mic.recorded_audio:
-        audio_file = mic.recorded_audio
-        with open("temp_audio.wav", "wb") as f:
-            f.write(audio_file)
-
-        # Use Speech Recognition to convert speech to text
-        recognizer = sr.Recognizer()
-        with sr.AudioFile("temp_audio.wav") as source:
-            audio = recognizer.record(source)
-            try:
-                question_text = recognizer.recognize_google(audio)
-                st.write(f"📝 You asked: {question_text}")
-                response = agent.run({"question": question_text, "chat_history": []})
-                st.write(f"🔍 **Answer:** {response}")
-                tts = gTTS(response)
-                tts.save("answer.mp3")
-                st.audio("answer.mp3")
-            except sr.UnknownValueError:
-                st.error("Sorry, I could not understand the audio.")
-            except sr.RequestError:
-                st.error("Could not request results from Google Speech Recognition service.")
+question = st.text_input("Type your question here:")
+if question:
+    response = agent.run({"question": question, "chat_history": []})
+    st.write(f"🔍 **Answer:** {response}")
