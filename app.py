@@ -75,7 +75,9 @@ if uploaded_file:
 
             # Embed the PDF content in the sidebar
             st.sidebar.subheader("Uploaded PDF Content")
-            st.sidebar.pdf(pdf_data)
+            base64_pdf = base64.b64encode(pdf_data).decode('utf-8')
+            pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="600" type="application/pdf"></iframe>'
+            st.sidebar.markdown(pdf_display, unsafe_allow_html=True)
 
             
             # Initialize LangChain components
