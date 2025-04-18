@@ -191,7 +191,6 @@ if uploaded_file:
         st.error(f"🚨 An error occurred: {str(e)}")
 
     # Generate a downloadable PDF summary
-    st.subheader("📄 Download Summary as csv")
     download_summary_csv(inputs_dict, ratios)
 
 
