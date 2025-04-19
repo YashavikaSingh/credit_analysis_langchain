@@ -7,7 +7,6 @@ import tempfile
 from tempfile import NamedTemporaryFile
 import matplotlib.pyplot as plt
 from langchain.document_loaders import PyMuPDFLoader
-import pdfplumber
 from langchain.llms import OpenAI
 from langchain.schema import Document
 import plotly.graph_objects as go
