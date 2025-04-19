@@ -7,8 +7,11 @@ import tempfile
 from tempfile import NamedTemporaryFile
 import matplotlib.pyplot as plt
 from langchain.document_loaders import PyMuPDFLoader
+import pdfplumber
 from langchain.llms import OpenAI
+from langchain.schema import Document
 import plotly.graph_objects as go
+from langchain.schema import HumanMessage, SystemMessage
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
@@ -24,6 +27,45 @@ OPENAI_API_KEY = st.secrets["openai"]["api_key"]
 uploaded_file = st.sidebar.file_uploader("📁 Upload Financial Statement (PDF)", type="pdf")
 
 # --- Utility Functions ---
+
+def looks_like_table(text):
+    keywords = ['$', '%', 'Balance Sheet', 'Statement', 'Income Statement', 'Revenue', 'Assets', 'Liabilities', 'Net Income']
+    return any(keyword in text for keyword in keywords)
+
+# Function to extract financial tables using AI (only for filtered pages)
+def extract_financial_tables_ai(documents):
+    table_like_sections = []
+
+    # Pre-filter documents for potential financial data
+    filtered_docs = [doc for doc in documents if looks_like_table(doc.page_content)]
+    
+    # Process each filtered document
+    for doc in filtered_docs:
+        messages = [
+            SystemMessage(
+                content="You are a financial analyst AI. Your job is to identify whether this section contains any financial tables, metrics, or structured financial data."
+            ),
+            HumanMessage(
+                content=f"""Does the following text contain a financial table or numeric data such as income statements, balance sheets, ratios, or metrics?
+
+Respond with 'Yes' or 'No'. Then, if yes, provide a cleaned version of just the relevant table-like or numeric portion.
+
+---
+{doc.page_content}
+---
+"""
+            )
+        ]
+
+        response = llm(messages).content.strip()
+        if response.lower().startswith("yes"):
+            # Clean and add only the relevant portion
+            cleaned = response.split("\n", 1)[1] if "\n" in response else ""
+            table_like_sections.append(cleaned)
+
+    return "\n\n".join(table_like_sections)
+
+
 
 def visualize_ratios(ratios):
     selected_keys = ["Quick Ratio", "Current Ratio", "Equity Ratio", "Debt to Equity Ratio"]
@@ -155,9 +197,21 @@ if uploaded_file:
                 tmp.write(uploaded_file.getvalue())
                 pdf_path = tmp.name
 
-            # Use OCR-capable loader
+                        # Use OCR-capable loader
             loader = PyMuPDFLoader(pdf_path)
             documents = loader.load()
+
+            # Extract Financial Data from the PDF using AI
+            st.subheader("📥 Extracting Financial Data (AI Processed)")
+            
+            # Extract financial tables using AI
+            extracted_tables = extract_financial_tables_ai(documents)
+            
+            if extracted_tables:
+                st.text_area("Extracted Financial Data", value=extracted_tables, height=300)
+            else:
+                st.write("No financial tables or relevant numeric data found.")
+
 
             # Setup LangChain components
             embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
