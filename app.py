@@ -15,15 +15,14 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
 from langchain.chat_models import ChatOpenAI
+# API key from secrets
+OPENAI_API_KEY = st.secrets["openai"]["api_key"]
 
 
 # Set page layout
 st.set_page_config(page_title="Financial Statement Analyzer", layout="wide")
 st.title("📊 Financial Statement Analyzer")
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, openai_api_key=OPENAI_API_KEY)
-
-# API key from secrets
-OPENAI_API_KEY = st.secrets["openai"]["api_key"]
 
 # Upload PDF file
 uploaded_file = st.sidebar.file_uploader("📁 Upload Financial Statement (PDF)", type="pdf")
