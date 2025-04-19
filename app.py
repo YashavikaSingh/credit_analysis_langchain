@@ -62,7 +62,7 @@ Respond with 'Yes' or 'No'. Then, if yes, provide a cleaned version of just the 
             # Clean and add only the relevant portion
             cleaned = response.split("\n", 1)[1] if "\n" in response else ""
             table_like_sections.append(cleaned)
-
+    print("Extracted")
     return "\n\n".join(table_like_sections)
 
 
