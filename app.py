@@ -8,6 +8,7 @@ from tempfile import NamedTemporaryFile
 import matplotlib.pyplot as plt
 from langchain.document_loaders import PyMuPDFLoader
 from langchain.llms import OpenAI
+import plotly.graph_objects as go
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
@@ -23,6 +24,36 @@ OPENAI_API_KEY = st.secrets["openai"]["api_key"]
 uploaded_file = st.sidebar.file_uploader("📁 Upload Financial Statement (PDF)", type="pdf")
 
 # --- Utility Functions ---
+
+def visualize_ratios(ratios):
+    selected_keys = ["Quick Ratio", "Current Ratio", "Equity Ratio", "Debt to Equity Ratio"]
+    visual_ratios = {k: ratios[k] for k in selected_keys if k in ratios}
+
+    # Creating a bar chart with Plotly
+    fig = go.Figure()
+
+    # Add bars to the chart
+    fig.add_trace(go.Bar(
+        y=list(visual_ratios.keys()), 
+        x=list(visual_ratios.values()), 
+        orientation='h', 
+        marker=dict(color=['#3498db', '#2ecc71', '#9b59b6', '#e74c3c'])
+    ))
+
+    # Update layout for better styling
+    fig.update_layout(
+        title="Selected Financial Ratios",
+        xaxis_title="Ratio Value",
+        yaxis_title="Ratio",
+        template="plotly_dark",  # Optional, dark theme
+        margin=dict(l=100, r=100, t=40, b=40),
+        showlegend=False
+    )
+
+    st.plotly_chart(fig)
+    return fig  # Return the Plotly figure
+
+
 def download_summary_csv(inputs: dict, ratios: dict, filename: str = "financial_summary.csv"):
     """
     Creates and offers a CSV file download with both raw inputs and calculated financial ratios.
@@ -100,21 +131,21 @@ def calculate_financial_ratios(debt, equity, receivables, inventories, payables,
         "Equity Ratio": equity_ratio
     }
 
-def visualize_ratios(ratios):
-    selected_keys = ["Quick Ratio", "Current Ratio", "Equity Ratio", "Debt to Equity Ratio"]
-    visual_ratios = {k: ratios[k] for k in selected_keys if k in ratios}
+# def visualize_ratios(ratios):
+#     selected_keys = ["Quick Ratio", "Current Ratio", "Equity Ratio", "Debt to Equity Ratio"]
+#     visual_ratios = {k: ratios[k] for k in selected_keys if k in ratios}
 
-    ratio_labels = list(visual_ratios.keys())
-    ratio_values = list(visual_ratios.values())
+#     ratio_labels = list(visual_ratios.keys())
+#     ratio_values = list(visual_ratios.values())
 
-    fig, ax = plt.subplots()
-    ax.barh(ratio_labels, ratio_values, color=['#3498db', '#2ecc71', '#9b59b6', '#e74c3c'])
-    ax.set_xlabel('Ratio Value')
-    ax.set_title('Selected Financial Ratios')
-    ax.grid(True, axis='x', linestyle='--', alpha=0.6)
+#     fig, ax = plt.subplots()
+#     ax.barh(ratio_labels, ratio_values, color=['#3498db', '#2ecc71', '#9b59b6', '#e74c3c'])
+#     ax.set_xlabel('Ratio Value')
+#     ax.set_title('Selected Financial Ratios')
+#     ax.grid(True, axis='x', linestyle='--', alpha=0.6)
 
-    st.pyplot(fig)
-    return fig  # Return the matplotlib figure
+#     st.pyplot(fig)
+#     return fig  # Return the matplotlib figure
 
 # --- Main App ---
 if uploaded_file:
@@ -186,6 +217,7 @@ if uploaded_file:
             # Visualize Ratios
             st.subheader("📉 Financial Ratios Visualization")
             fig = visualize_ratios(ratios)
+
 
     except Exception as e:
         st.error(f"🚨 An error occurred: {str(e)}")
