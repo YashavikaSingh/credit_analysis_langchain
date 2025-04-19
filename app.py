@@ -14,10 +14,13 @@ from langchain.schema import HumanMessage, SystemMessage
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
+from langchain.chat_models import ChatOpenAI
+
 
 # Set page layout
 st.set_page_config(page_title="Financial Statement Analyzer", layout="wide")
 st.title("📊 Financial Statement Analyzer")
+llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
 
 # API key from secrets
 OPENAI_API_KEY = st.secrets["openai"]["api_key"]
