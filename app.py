@@ -42,7 +42,7 @@ def visualize_ratios(ratios):
 
     # Update layout for better styling
     fig.update_layout(
-        title="Selected Financial Ratios",
+        title="Selected Financial Ratios hi hi",
         xaxis_title="Ratio Value",
         yaxis_title="Ratio",
         template="plotly_dark",  # Optional, dark theme
