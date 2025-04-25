@@ -79,9 +79,6 @@ def extract_financial_tables_ai(documents):
     for doc in filtered_docs:
         page_text = doc.page_content.strip()
 
-        # Optionally further trim very long text chunks before sending to LLM
-        if len(page_text) > 3000:  # You can fine-tune this limit
-            page_text = page_text[:3000] + "\n..."
 
         messages = [
             SystemMessage(
