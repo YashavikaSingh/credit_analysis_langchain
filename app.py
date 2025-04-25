@@ -21,7 +21,7 @@ OPENAI_API_KEY = st.secrets["openai"]["api_key"]
 
 # Set page layout
 st.set_page_config(page_title="Financial Statement Analyzer Long Documents", layout="wide")
-st.title("📊 Financial Statement Analyzer Long Documents")
+st.title("📊 Financial Statement Analyzer")
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, openai_api_key=OPENAI_API_KEY)
 
 # Upload PDF file
@@ -33,25 +33,15 @@ import re
 
 def is_table_like(text):
     """
-    Enhanced table detection using structural patterns and financial formats
+    Checks if the text contains at least 2 lines with 2 or more numeric values per line.
+    This is a simple heuristic to detect table-like numeric structures.
     """
-    # Check for common table structural patterns
-    structural_patterns = [
-        r"\b\d{4}\b\s*\|\s*\d+",  # Year columns with pipes
-        r"\b[A-Za-z]+\s+[\d,\.]+\s+[\d,\.]+",  # Text followed by numbers
-        r"(\b\d{1,3}(?:,\d{3})*\.\d{2}\b.*){2}",  # Currency values
-        r"^(\|.+)+\|$",  # Pipe-separated rows
-        r"\bTotal\b.*\d+",  # Total rows with numbers
-        r"─{3,}|={3,}"  # Table border characters
-    ]
-    
-    if any(re.search(pattern, text, re.MULTILINE) for pattern in structural_patterns):
-        return True
-    
-    # Count table-like rows with multiple numeric values
+    lines = text.splitlines()
     numeric_lines = 0
-    for line in text.splitlines()[:10]:  # Only check first 10 lines
-        if len(re.findall(r"\b\d{1,3}(?:,\d{3})*(?:\.\d+)?\b", line)) >= 2:
+
+    for line in lines:
+        # Look for at least two numeric patterns in the line
+        if len(re.findall(r"\d[\d,\.]*", line)) >= 2:
             numeric_lines += 1
             if numeric_lines >= 2:
                 return True
@@ -59,64 +49,61 @@ def is_table_like(text):
 
 def contains_financial_keywords(text):
     """
-    Expanded financial keywords with regex word boundaries
+    Checks for the presence of financial terms that often appear in financial tables.
     """
     keywords = [
-        r'\bBalance Sheet\b', r'\bIncome Statement\b', r'\bCash Flow\b',
-        r'\b(Total )?Assets\b', r'\b(Liabilities|Equity)\b',
-        r'\b(Net Income|Revenue|EBITDA|EBIT)\b',
-        r'\b(Operating|Gross) (Expenses|Profit)\b',
-        r'\bFinancial Position\b', r'\b(Current|Noncurrent) (Assets|Liabilities)\b',
-        r'\bDebt to Equity\b', r'\bReturn on Equity\b', r'\bEPS\b'
+        'Balance Sheet', 'Income Statement', 'Cash Flow', 'Revenue',
+        'Assets', 'Liabilities', 'Equity', 'Net Income', 'Operating Expenses',
+        'Gross Profit', 'EBITDA', 'Financial Position'
     ]
-    return any(re.search(pattern, text, re.IGNORECASE) for pattern in keywords)
+    # Case insensitive match
+    return any(keyword.lower() in text.lower() for keyword in keywords)
 
 def looks_like_table(text):
     """
-    Combined check with length optimization
+    Returns True if the text contains financial keywords or has a table-like numeric structure.
     """
-    text_sample = text[:2000]  # Only check first 2000 characters
-    return contains_financial_keywords(text_sample) or is_table_like(text_sample)
+    return contains_financial_keywords(text) or is_table_like(text)
 
 def extract_financial_tables_ai(documents):
-    """
-    Optimized extraction with chunk processing and concise prompts
-    """
     table_like_sections = []
-    
-    # First pass: Quick heuristic filtering
-    filtered_docs = [doc for doc in documents if looks_like_table(doc.page_content)]
-    
-    print(f"Initial filtering: {len(documents)} → {len(filtered_docs)} potential tables")
-    
-    # Process in chunks to avoid token overflow
-    for doc in filtered_docs[:20]:  # Limit to 20 most promising candidates
-        page_text = doc.page_content.strip()[:3000]  # Truncate to 3000 chars
-        
-        # Concise system message and structured prompt
-        messages = [
-            SystemMessage(content="Extract financial tables. Reply format: 'Yes|No [TABLE]'"),
-            HumanMessage(content=f"Text: {page_text}\nContains financial table? If yes, provide cleaned table:")
-        ]
-        
-        try:
-            response = llm(messages).content.strip()
-            if response.lower().startswith("yes"):
-                # Extract table portion only
-                cleaned = response.split("---", 1)[-1].strip()
-                table_like_sections.append(cleaned)
-                
-                # Early exit if we have enough data
-                if len(table_like_sections) >= 5:
-                    break
-                    
-        except Exception as e:
-            print(f"Error processing document: {str(e)}")
-    
-    # Deduplicate similar tables
-    unique_tables = list(set(table_like_sections))
-    return "\n\n".join(unique_tables)[:4000]  # Hard cap on output length
 
+    # Apply early filtering using heuristic checks
+    filtered_docs = [
+        doc for doc in documents
+        if looks_like_table(doc.page_content)
+    ]
+
+    print(f"Filtered from {len(documents)} to {len(filtered_docs)} potential financial sections.")
+
+    for doc in filtered_docs:
+        page_text = doc.page_content.strip()
+
+
+        messages = [
+            SystemMessage(
+                content="You are a financial analyst AI. Your job is to identify whether this section contains any financial tables, metrics, or structured financial data."
+            ),
+            HumanMessage(
+                content=f"""Does the following text contain a financial table or numeric data such as income statements, balance sheets, ratios, or metrics?
+
+Respond with 'Yes' or 'No'. Then, if yes, provide a cleaned version of just the relevant table-like or numeric portion.
+
+---
+{page_text}
+---
+"""
+            )
+        ]
+
+        response = llm(messages).content.strip()
+        if response.lower().startswith("yes"):
+            # Clean and add only the relevant portion
+            cleaned = response.split("\n", 1)[1] if "\n" in response else ""
+            table_like_sections.append(cleaned)
+
+    print(f"Extracted {len(table_like_sections)} financial sections.")
+    return "\n\n".join(table_like_sections)
 
 
 
