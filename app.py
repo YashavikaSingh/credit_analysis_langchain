@@ -21,7 +21,7 @@ OPENAI_API_KEY = st.secrets["openai"]["api_key"]
 
 # Set page layout
 st.set_page_config(page_title="Financial Statement Analyzer Long Documents", layout="wide")
-st.title("📊 Financial Statement Analyzer")
+st.title("📊 Financial Statement Analyzer Long Documents")
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, openai_api_key=OPENAI_API_KEY)
 
 # Upload PDF file
