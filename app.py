@@ -20,7 +20,7 @@ OPENAI_API_KEY = st.secrets["openai"]["api_key"]
 
 
 # Set page layout
-st.set_page_config(page_title="Financial Statement Analyzer", layout="wide")
+st.set_page_config(page_title="Financial Statement Analyzer Long Documents", layout="wide")
 st.title("📊 Financial Statement Analyzer")
 llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0, openai_api_key=OPENAI_API_KEY)
 
@@ -64,7 +64,7 @@ def looks_like_table(text):
     Returns True if the text contains financial keywords or has a table-like numeric structure.
     """
     return contains_financial_keywords(text) or is_table_like(text)
-    
+
 def extract_financial_tables_ai(documents):
     table_like_sections = []
 
