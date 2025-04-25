@@ -29,19 +29,60 @@ uploaded_file = st.sidebar.file_uploader("📁 Upload Financial Statement (PDF)"
 
 # --- Utility Functions ---
 
-def looks_like_table(text):
-    keywords = ['$', '%', 'Balance Sheet', 'Statement', 'Income Statement', 'Revenue', 'Assets', 'Liabilities', 'Net Income']
-    return any(keyword in text for keyword in keywords)
+import re
 
-# Function to extract financial tables using AI (only for filtered pages)
+def is_table_like(text):
+    """
+    Checks if the text contains at least 2 lines with 2 or more numeric values per line.
+    This is a simple heuristic to detect table-like numeric structures.
+    """
+    lines = text.splitlines()
+    numeric_lines = 0
+
+    for line in lines:
+        # Look for at least two numeric patterns in the line
+        if len(re.findall(r"\d[\d,\.]*", line)) >= 2:
+            numeric_lines += 1
+            if numeric_lines >= 2:
+                return True
+    return False
+
+def contains_financial_keywords(text):
+    """
+    Checks for the presence of financial terms that often appear in financial tables.
+    """
+    keywords = [
+        'Balance Sheet', 'Income Statement', 'Cash Flow', 'Revenue',
+        'Assets', 'Liabilities', 'Equity', 'Net Income', 'Operating Expenses',
+        'Gross Profit', 'EBITDA', 'Financial Position'
+    ]
+    # Case insensitive match
+    return any(keyword.lower() in text.lower() for keyword in keywords)
+
+def looks_like_table(text):
+    """
+    Returns True if the text contains financial keywords or has a table-like numeric structure.
+    """
+    return contains_financial_keywords(text) or is_table_like(text)
+    
 def extract_financial_tables_ai(documents):
     table_like_sections = []
 
-    # Pre-filter documents for potential financial data
-    filtered_docs = [doc for doc in documents if looks_like_table(doc.page_content)]
-    
-    # Process each filtered document
+    # Apply early filtering using heuristic checks
+    filtered_docs = [
+        doc for doc in documents
+        if looks_like_table(doc.page_content)
+    ]
+
+    print(f"Filtered from {len(documents)} to {len(filtered_docs)} potential financial sections.")
+
     for doc in filtered_docs:
+        page_text = doc.page_content.strip()
+
+        # Optionally further trim very long text chunks before sending to LLM
+        if len(page_text) > 3000:  # You can fine-tune this limit
+            page_text = page_text[:3000] + "\n..."
+
         messages = [
             SystemMessage(
                 content="You are a financial analyst AI. Your job is to identify whether this section contains any financial tables, metrics, or structured financial data."
@@ -52,7 +93,7 @@ def extract_financial_tables_ai(documents):
 Respond with 'Yes' or 'No'. Then, if yes, provide a cleaned version of just the relevant table-like or numeric portion.
 
 ---
-{doc.page_content}
+{page_text}
 ---
 """
             )
@@ -63,7 +104,8 @@ Respond with 'Yes' or 'No'. Then, if yes, provide a cleaned version of just the 
             # Clean and add only the relevant portion
             cleaned = response.split("\n", 1)[1] if "\n" in response else ""
             table_like_sections.append(cleaned)
-    print("Extracted")
+
+    print(f"Extracted {len(table_like_sections)} financial sections.")
     return "\n\n".join(table_like_sections)
 
 
