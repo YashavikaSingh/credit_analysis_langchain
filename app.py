@@ -74,7 +74,7 @@ def extract_financial_tables_ai(documents):
         if looks_like_table(doc.page_content)
     ]
 
-    print(f"Filtered from {len(documents)} to {len(filtered_docs)} potential financial sections.")
+    # print(f"Filtered from {len(documents)} to {len(filtered_docs)} potential financial sections.")
 
     for doc in filtered_docs:
         page_text = doc.page_content.strip()
@@ -102,7 +102,7 @@ Respond with 'Yes' or 'No'. Then, if yes, provide a cleaned version of just the 
             cleaned = response.split("\n", 1)[1] if "\n" in response else ""
             table_like_sections.append(cleaned)
 
-    print(f"Extracted {len(table_like_sections)} financial sections.")
+    # print(f"Extracted {len(table_like_sections)} financial sections.")
     return "\n\n".join(table_like_sections)
 
 
@@ -213,21 +213,6 @@ def calculate_financial_ratios(debt, equity, receivables, inventories, payables,
         "Equity Ratio": equity_ratio
     }
 
-# def visualize_ratios(ratios):
-#     selected_keys = ["Quick Ratio", "Current Ratio", "Equity Ratio", "Debt to Equity Ratio"]
-#     visual_ratios = {k: ratios[k] for k in selected_keys if k in ratios}
-
-#     ratio_labels = list(visual_ratios.keys())
-#     ratio_values = list(visual_ratios.values())
-
-#     fig, ax = plt.subplots()
-#     ax.barh(ratio_labels, ratio_values, color=['#3498db', '#2ecc71', '#9b59b6', '#e74c3c'])
-#     ax.set_xlabel('Ratio Value')
-#     ax.set_title('Selected Financial Ratios')
-#     ax.grid(True, axis='x', linestyle='--', alpha=0.6)
-
-#     st.pyplot(fig)
-#     return fig  # Return the matplotlib figure
 
 # --- Main App ---
 if uploaded_file:
